@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPT Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <svg class="logo-icon" viewBox="0 0 24 28" width="18" height="21" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round">
+        <path d="M12 2L22 8V20L12 26L2 20V8L12 2Z"/>
+      </svg>
+      <span class="logo-text">GPT Platform</span>
+    </div>
+    <nav class="tabs" id="navTabs">
+      <button class="tab active" data-tab="dashboard">看板</button>
+      <button class="tab" data-tab="register">注册</button>
+      <button class="tab" data-tab="cards">卡池</button>
+      <button class="tab" data-tab="accounts">账号</button>
+      <button class="tab" data-tab="proxies">代理</button>
+      <button class="tab" data-tab="settings">设置</button>
+    </nav>
+    <div class="header-right">
+      <div class="header-status"><span class="dot"></span> 就绪</div>
+      <button class="theme-toggle" id="themeToggle" title="切换主题">
+        <svg class="theme-icon-dark" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg class="theme-icon-light" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ═══ Tab: 看板 ═══ -->
+    <div class="tab-page active" id="page-dashboard">
+      <div class="dash-hero">
+        <div class="dash-hero-main">
+          <div class="dash-hero-num" id="dashTotal">0</div>
+          <div class="dash-hero-label">账号总计</div>
+        </div>
+        <div class="dash-hero-aside">
+          <span class="dash-hero-tag today">今日 +<strong id="dashToday">0</strong></span>
+          <button class="btn-ghost" id="btnRefreshDash">刷新</button>
+        </div>
+      </div>
+
+      <div class="dash-row">
+        <div class="dash-metric">
+          <div class="dash-metric-icon sale">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          </div>
+          <div class="dash-metric-body">
+            <span class="dash-metric-val accent" id="dashUnsold">0</span>
+            <span class="dash-metric-lbl">未售卖</span>
+          </div>
+        </div>
+        <div class="dash-metric">
+          <div class="dash-metric-icon sold">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="dash-metric-body">
+            <span class="dash-metric-val" id="dashSold">0</span>
+            <span class="dash-metric-lbl">已售卖</span>
+          </div>
+        </div>
+        <div class="dash-metric">
+          <div class="dash-metric-icon recycled">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          </div>
+          <div class="dash-metric-body">
+            <span class="dash-metric-val" id="dashRecycled">0</span>
+            <span class="dash-metric-lbl">回收池</span>
+          </div>
+        </div>
+        <div class="dash-metric">
+          <div class="dash-metric-icon alive">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div class="dash-metric-body">
+            <span class="dash-metric-val active-color" id="dashActive">0</span>
+            <span class="dash-metric-lbl">Active</span>
+          </div>
+        </div>
+        <div class="dash-metric">
+          <div class="dash-metric-icon dead">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <div class="dash-metric-body">
+            <span class="dash-metric-val dead-color" id="dashDead">0</span>
+            <span class="dash-metric-lbl">Dead</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-row dash-row-2">
+        <div class="dash-pool-card">
+          <div class="dash-pool-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <span>卡池</span>
+          </div>
+          <div class="dash-pool-num" id="dashCards">0</div>
+          <div class="dash-pool-bars">
+            <div class="dash-pool-seg">
+              <div class="dash-pool-seg-bar ok" id="dashCardsBarOk" style="width:0%"></div>
+              <span>可用 <strong id="dashCardsOk">0</strong></span>
+            </div>
+            <div class="dash-pool-seg">
+              <div class="dash-pool-seg-bar fail" id="dashCardsBarFail" style="width:0%"></div>
+              <span>失败 <strong id="dashCardsFail">0</strong></span>
+            </div>
+          </div>
+          <div class="dash-fail-detail" id="dashFailDetail"></div>
+        </div>
+        <div class="dash-pool-card">
+          <div class="dash-pool-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>代理池</span>
+          </div>
+          <div class="dash-pool-num" id="dashProxies">0</div>
+          <div class="dash-pool-bars">
+            <div class="dash-pool-seg">
+              <div class="dash-pool-seg-bar ok" id="dashProxyBarOk" style="width:0%"></div>
+              <span>可用 <strong id="dashProxyAvail">0</strong></span>
+            </div>
+            <div class="dash-pool-seg">
+              <div class="dash-pool-seg-bar fail" id="dashProxyBarFail" style="width:0%"></div>
+              <span>封禁 <strong id="dashProxyDisabled">0</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 最近任务 -->
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-header"><h2>最近任务</h2></div>
+        <div class="panel-body" id="dashRecentTasks">
+          <div class="empty-hint">加载中...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Tab: 注册 ═══ -->
+    <div class="tab-page" id="page-register">
+      <div class="reg-grid">
+        <section class="panel control-panel">
+          <div class="panel-header"><h2>注册控制</h2></div>
+          <div class="panel-body">
+            <label class="field-label">代理模式</label>
+            <select class="input-select" id="proxyType">
+              <option value="pool">代理池</option>
+              <option value="direct">本地直连</option>
+              <option value="socks5">SOCKS5 (手动)</option>
+              <option value="http">HTTP (手动)</option>
+            </select>
+            <input class="input-text" id="proxyStr" placeholder="socks5://user:pass@host:port" style="display:none">
+            <select class="input-select" id="proxyPoolSelect" style="display:none">
+              <option value="">随机</option>
+            </select>
+            <input type="hidden" id="proxyPoolId" value="">
+
+            <div id="bindOptions">
+              <div class="field-group">
+                <label class="field-label">绑卡路径</label>
+                <div class="radio-group">
+                  <label class="radio"><input type="radio" name="bindPath" value="onboarding" checked> 注册页直充</label>
+                  <label class="radio"><input type="radio" name="bindPath" value="billing"> Billing 页面</label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">首充金额</label>
+                <div id="creditOnboarding">
+                  <div class="radio-group">
+                    <label class="radio"><input type="radio" name="creditAmount" value="5" checked> $5</label>
+                    <label class="radio"><input type="radio" name="creditAmount" value="10"> $10</label>
+                    <label class="radio"><input type="radio" name="creditAmount" value="20"> $20</label>
+                  </div>
+                  <span class="hint-text">Onboarding 仅支持固定档位</span>
+                </div>
+                <div id="creditBilling" style="display:none">
+                  <div class="input-row">
+                    <input class="input-text" id="creditAmountInput" type="number" min="5" max="100" value="10" placeholder="5-100">
+                    <span class="hint-text">$5 ~ $100 自由填写</span>
+                  </div>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">追充策略</label>
+                <div class="radio-group" style="margin-bottom:8px">
+                  <label class="radio"><input type="radio" name="rechargeStrategy" value="none" checked> 不追充</label>
+                  <label class="radio"><input type="radio" name="rechargeStrategy" value="auto"> 自动追充</label>
+                  <label class="radio"><input type="radio" name="rechargeStrategy" value="manual"> 手动续充</label>
+                </div>
+                <div id="rechargeAutoConfig" style="display:none">
+                  <div class="input-row" style="gap:8px;align-items:center;flex-wrap:wrap">
+                    <span class="hint-text" style="white-space:nowrap">起始档</span>
+                    <select class="input-select" id="rechargeUpper" style="width:90px;margin:0">
+                      <option value="0">充满</option>
+                      <option value="20" selected>$20</option>
+                      <option value="10">$10</option>
+                      <option value="5">$5</option>
+                    </select>
+                    <span class="hint-text" style="white-space:nowrap">最低档</span>
+                    <select class="input-select" id="rechargeLower" style="width:80px;margin:0">
+                      <option value="20">$20</option>
+                      <option value="10">$10</option>
+                      <option value="5" selected>$5</option>
+                    </select>
+                  </div>
+                  <span class="hint-text" id="rechargeTierHint">从 $20/次 开始充至 $100 上限，遇 3DS 降档，遇余额不足停止</span>
+                </div>
+                <div id="rechargeManualHint" style="display:none">
+                  <span class="hint-text">浏览器保持打开，手动充值后关闭浏览器触发记录弹窗</span>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">选择卡片</label>
+                <div class="cs-trigger-row">
+                  <button class="btn-import" id="btnOpenCardSelect">选择卡片</button>
+                  <span class="cs-trigger-count" id="csCount">未选择</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">并发数</label>
+              <input class="input-text" id="regConcurrency" type="number" min="1" max="10" value="1" style="width:100px">
+            </div>
+
+            <div class="reg-btn-row">
+              <button class="btn-primary" id="btnStart"><span class="btn-icon">▶</span> 启动注册</button>
+              <button class="btn-pause" id="btnPause" style="display:none"><span class="btn-icon">⏸</span> 暂停</button>
+              <button class="btn-resume" id="btnResume" style="display:none"><span class="btn-icon">▶</span> 继续</button>
+              <button class="btn-cancel" id="btnStop" style="display:none"><span class="btn-icon">■</span> 停止</button>
+            </div>
+
+            <div class="stats-row">
+              <div class="stat-card"><span class="stat-value" id="statTotal">0</span><span class="stat-label">总账号</span></div>
+              <div class="stat-card"><span class="stat-value" id="statToday">0</span><span class="stat-label">今日</span></div>
+              <div class="stat-card"><span class="stat-value accent" id="statRunning">0</span><span class="stat-label">进行中</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel log-panel">
+          <div class="panel-header">
+            <h2>实时日志</h2>
+            <button class="btn-ghost" id="btnClearLog">清空</button>
+          </div>
+          <div class="panel-body">
+            <div class="progress-bar-wrap" id="progressWrap" style="display:none">
+              <div class="progress-bar" id="progressBar"></div>
+              <span class="progress-text" id="progressText">0/11</span>
+            </div>
+            <div class="log-container" id="logContainer"><div class="log-empty">等待启动...</div></div>
+            <div class="subtask-panel" id="subtaskPanel" style="display:none">
+              <div class="subtask-header"><span class="subtask-title">子任务进度</span><span class="subtask-summary" id="subtaskSummary"></span></div>
+              <div class="subtask-list" id="subtaskList"></div>
+            </div>
+            <div class="batch-summary-card" id="batchSummaryCard" style="display:none">
+              <div class="summary-stat success"><span class="summary-val" id="summarySuccess">0</span><span class="summary-lbl">成功</span></div>
+              <div class="summary-stat failed"><span class="summary-val" id="summaryFailed">0</span><span class="summary-lbl">失败</span></div>
+              <div class="summary-stat total"><span class="summary-val" id="summaryTotal">0</span><span class="summary-lbl">总计</span></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ═══ Tab: 卡池 ═══ -->
+    <div class="tab-page" id="page-cards">
+      <section class="panel mb-panel">
+        <div class="panel-header">
+          <h2>账单地址</h2>
+          <div class="addr-header-actions">
+            <label class="toggle-label"><input type="checkbox" id="addrTaxFreeOnly" checked><span class="toggle-text">仅免税州</span></label>
+            <label class="toggle-label"><input type="checkbox" id="addrAutoAssign" checked><span class="toggle-text">导入时自动分配</span></label>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="addr-filter-row">
+            <div class="addr-filter-item">
+              <label class="field-label">指定州</label>
+              <select class="input-select" id="addrStateSelect"><option value="">随机</option></select>
+            </div>
+            <div class="addr-filter-item">
+              <label class="field-label">指定邮编</label>
+              <input class="input-text" id="addrZipFilter" placeholder="留空随机">
+            </div>
+            <button class="btn-roll" id="btnRandomAddr" title="随机生成完整地址">Roll</button>
+          </div>
+          <div class="addr-result" id="addrResult" style="display:none">
+            <div class="addr-result-fields">
+              <div class="addr-field-row">
+                <label class="addr-field-tag">街道</label>
+                <input class="input-text addr-input" id="addrLine1" placeholder="Street address">
+                <button class="btn-reroll" id="btnRerollStreet" title="仅换街道地址">↻</button>
+              </div>
+              <div class="addr-field-row addr-row-3col">
+                <div class="addr-sub"><label class="addr-field-tag">城市</label><input class="input-text addr-input" id="addrCity" placeholder="City"></div>
+                <div class="addr-sub narrow"><label class="addr-field-tag">州</label><input class="input-text addr-input" id="addrState" placeholder="ST"></div>
+                <div class="addr-sub narrow"><label class="addr-field-tag">邮编</label><input class="input-text addr-input" id="addrZip" placeholder="ZIP"></div>
+                <button class="btn-reroll" id="btnRerollLocation" title="按当前州/邮编重新生成">↻</button>
+              </div>
+            </div>
+            <div class="addr-result-meta"><span class="addr-meta-badge" id="addrBadge"></span></div>
+          </div>
+          <div class="addr-empty-hint" id="addrEmptyHint">点击 Roll 生成地址</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>卡池列表</h2>
+          <div class="header-actions">
+            <div class="filter-tabs" id="cardFilterTabs">
+              <button class="filter-tab" data-filter="all">全部</button>
+              <button class="filter-tab active" data-filter="available">可用</button>
+              <button class="filter-tab" data-filter="disabled">禁用</button>
+              <span class="divider-v"></span>
+              <button class="filter-tab" data-filter="decline">Decline</button>
+              <button class="filter-tab" data-filter="3ds">3DS</button>
+              <button class="filter-tab" data-filter="insufficient">Insufficient</button>
+            </div>
+            <input class="search-input" id="cardSearch" type="text" placeholder="搜索卡号 / 持卡人...">
+            <button class="btn-import" id="btnOpenCardImport">+ 录入</button>
+            <button class="btn-ghost" id="btnRefreshCards">刷新</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="batch-bar" id="cardBatchBar" style="display:none">
+            <span class="batch-count" id="cardSelCount">0</span>
+            <span class="batch-sep"></span>
+            <span class="batch-group">
+              <button class="btn-sm" onclick="cardSelectAll()">全选</button>
+              <button class="btn-sm" onclick="cardSelectNone()">取消</button>
+              <button class="btn-sm" onclick="cardSelectInvert()">反选</button>
+              <select class="batch-select-by" onchange="cardSelectByTag(this.value); this.value='';">
+                <option value="">按标签选...</option>
+                <option value="decline">Decline</option>
+                <option value="3ds">3DS</option>
+                <option value="insufficient">Insufficient</option>
+              </select>
+            </span>
+            <span class="batch-sep"></span>
+            <span class="batch-group">
+              <button class="btn-sm" onclick="cardBatchAction('available')">标记可用</button>
+              <button class="btn-sm" onclick="cardBatchAction('disabled')">标记禁用</button>
+              <button class="btn-sm" onclick="cardClearFailTag()">清除标记</button>
+              <button class="btn-sm accent" onclick="cardBatchAddress()">批量分配地址</button>
+              <button class="btn-sm accent" id="btnRetryBind" style="display:none">重试绑定</button>
+            </span>
+            <button class="btn-sm danger batch-danger-end" onclick="cardBatchDelete()">删除选中</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th style="width:32px"><input type="checkbox" id="cardCheckAll" class="row-check"></th>
+                <th class="sortable" data-sort="id">ID</th><th>卡号</th><th>过期</th><th>持卡人</th><th>账单地址</th><th class="sortable" data-sort="status">状态</th><th class="sortable" data-sort="bound_count">使用</th><th>操作</th>
+              </tr></thead>
+              <tbody id="cardsBody"></tbody>
+            </table>
+            <div class="table-empty" id="cardsEmpty">暂无卡</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══ Tab: 账号管理 ═══ -->
+    <div class="tab-page" id="page-accounts">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>账号管理</h2>
+          <div class="header-actions">
+            <button class="btn-ghost" id="btnExportCSV" title="导出CSV">导出CSV</button>
+            <button class="btn-ghost" id="btnExportKeys" title="仅导出API Key">导出Key</button>
+            <button class="btn-ghost" id="btnCleanupDead" title="清理失效账号的AdsPower环境">清理失效</button>
+            <span class="divider-v"></span>
+            <button class="btn-ghost" id="btnCheckAll">全部测活</button>
+            <button class="btn-ghost" id="btnRefreshAccounts">刷新</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="acct-toolbar">
+            <div class="sale-tabs" id="acctSaleTabs">
+              <button class="sale-tab active" data-sale="all">全部</button>
+              <button class="sale-tab" data-sale="unsold">未售卖 <span class="sale-count" id="saleCountUnsold">0</span></button>
+              <button class="sale-tab" data-sale="sold">已售卖 <span class="sale-count" id="saleCountSold">0</span></button>
+              <button class="sale-tab" data-sale="recycled">回收池 <span class="sale-count" id="saleCountRecycled">0</span></button>
+            </div>
+          </div>
+          <div class="acct-toolbar">
+            <div class="filter-tabs" id="acctFilterTabs">
+              <button class="filter-tab active" data-filter="all">全部</button>
+              <button class="filter-tab" data-filter="active">Active</button>
+              <button class="filter-tab" data-filter="dead">Dead</button>
+              <button class="filter-tab" data-filter="unknown">Unknown</button>
+              <button class="filter-tab" data-filter="unbound">未绑卡</button>
+            </div>
+            <input class="search-input" id="acctSearch" type="text" placeholder="搜索邮箱 / Key...">
+          </div>
+          <div class="batch-bar" id="acctBatchBar" style="display:none">
+            <span class="batch-count" id="acctSelCount">0</span>
+            <span class="batch-sep"></span>
+            <span class="batch-group">
+              <button class="btn-sm" onclick="acctSelectAll()">全选</button>
+              <button class="btn-sm" onclick="acctSelectNone()">取消</button>
+              <button class="btn-sm" onclick="acctSelectInvert()">反选</button>
+              <select class="batch-select-by" id="acctSelectBy" onchange="acctSelectByCondition(this.value); this.value='';">
+                <option value="">按条件选...</option>
+                <option value="dead">所有 Dead</option>
+                <option value="active">所有 Active</option>
+                <option value="unknown">所有 Unknown</option>
+                <option value="unbound">所有 未绑卡</option>
+                <option value="unsold">所有 未售卖</option>
+              </select>
+            </span>
+            <span class="batch-sep"></span>
+            <span class="batch-group">
+              <button class="btn-sm" onclick="acctBatchStatus('active')">标记Active</button>
+              <button class="btn-sm" onclick="acctBatchStatus('dead')">标记Dead</button>
+              <button class="btn-sm accent" onclick="acctBatchCheck()">测活选中</button>
+              <button class="btn-sm" onclick="acctBatchExport()">导出选中</button>
+              <button class="btn-sm accent" id="btnSellExport" style="display:none">导出并售卖</button>
+            </span>
+            <button class="btn-sm danger batch-danger-end" onclick="acctBatchDelete()">删除选中</button>
+          </div>
+          <div class="progress-bar-wrap" id="checkProgressWrap" style="display:none">
+            <div class="progress-bar" id="checkProgressBar"></div>
+            <span class="progress-text" id="checkProgressText">0/0</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th style="width:32px"><input type="checkbox" id="acctCheckAll" class="row-check"></th>
+                <th style="width:48px" class="sortable" data-sort="id">#ID</th><th>邮箱</th><th>密码</th><th>API Key</th><th class="sortable" data-sort="status">状态</th><th>售卖</th><th>绑卡</th><th class="sortable" data-sort="credit_loaded">额度</th><th class="sortable" data-sort="registered_at">注册时间</th><th>检测</th><th>操作</th>
+              </tr></thead>
+              <tbody id="accountsBody"></tbody>
+            </table>
+            <div class="table-empty" id="accountsEmpty">暂无账号</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══ Tab: 代理池 ═══ -->
+    <div class="tab-page" id="page-proxies">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>代理列表</h2>
+          <div class="header-actions">
+            <button class="btn-import" id="btnOpenProxyImport">+ 导入</button>
+            <button class="btn-ghost" id="btnResetProxies">全部解禁</button>
+            <button class="btn-ghost" id="btnCheckProxies">测活</button>
+            <button class="btn-ghost" id="btnRefreshProxies">刷新</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="filter-row" style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
+            <input type="text" class="input-search" id="proxySearch" placeholder="搜索主机/标签..." style="width:180px">
+            <div class="filter-tabs" id="proxyFilterTabs">
+              <button class="filter-tab active" data-filter="all">全部</button>
+              <button class="filter-tab" data-filter="available">可用</button>
+              <button class="filter-tab" data-filter="disabled">封禁</button>
+            </div>
+          </div>
+          <div class="batch-bar" id="proxyBatchBar" style="display:none">
+            <span class="batch-count" id="proxySelCount">0</span>
+            <span class="batch-sep"></span>
+            <span class="batch-group">
+              <button class="btn-sm" onclick="proxySelectAll()">全选</button>
+              <button class="btn-sm" onclick="proxySelectNone()">取消</button>
+            </span>
+            <span class="batch-sep"></span>
+            <span class="batch-group">
+              <button class="btn-sm accent" onclick="proxyBatchCheck()">测活选中</button>
+              <button class="btn-sm" onclick="proxyBatchEnable()">批量启用</button>
+              <button class="btn-sm" onclick="proxyBatchDisable()">批量封禁</button>
+            </span>
+            <button class="btn-sm danger batch-danger-end" onclick="proxyBatchDelete()">删除选中</button>
+          </div>
+          <div class="progress-bar-wrap" id="proxyCheckWrap" style="display:none">
+            <div class="progress-bar" id="proxyCheckBar"></div>
+            <span class="progress-text" id="proxyCheckText">0/0</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th style="width:32px"><input type="checkbox" class="row-check" id="proxyCheckAll"></th>
+                <th>ID</th><th>类型</th><th>主机</th><th>端口</th><th>认证</th><th>标签</th><th>状态</th><th>添加时间</th><th>操作</th>
+              </tr></thead>
+              <tbody id="proxiesBody"></tbody>
+            </table>
+            <div class="table-empty" id="proxiesEmpty">暂无代理</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══ Tab: 设置 ═══ -->
+    <div class="tab-page" id="page-settings">
+      <div class="settings-layout">
+        <section class="panel">
+          <div class="panel-header"><h2>AdsPower 配置</h2></div>
+          <div class="panel-body">
+            <label class="field-label">API 地址</label>
+            <input class="input-text" id="settAdsApi" placeholder="http://127.0.0.1:50325">
+            <div class="field-group">
+              <label class="field-label">API Key</label>
+              <input class="input-text" id="settAdsKey" placeholder="AdsPower API Key" type="text">
+            </div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-header"><h2>TabMail 邮箱服务</h2></div>
+          <div class="panel-body">
+            <label class="field-label">服务地址</label>
+            <input class="input-text" id="settTabmailUrl" placeholder="http://192.229.101.130:3000">
+            <div class="field-group">
+              <label class="field-label">Admin Key</label>
+              <input class="input-text" id="settTabmailAdminKey" placeholder="TabMail Admin Key" type="text">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Tenant ID</label>
+              <input class="input-text" id="settTabmailTenantId" placeholder="00000000-0000-0000-0000-000000000001">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Zone ID</label>
+              <input class="input-text" id="settTabmailZoneId" placeholder="域名区域 ID">
+            </div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-body">
+            <div class="input-row" style="align-items:center">
+              <button class="btn-accent-sm" id="btnSaveSettings">保存所有设置</button>
+              <span class="import-result" id="settingsResult" style="display:none"></span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- Drawers live outside tab pages to avoid display/animation interference -->
+  <div class="drawer-overlay" id="cardImportDrawer">
+    <div class="drawer-panel" style="max-width:780px">
+      <div class="drawer-header">
+        <h2>录入卡片</h2>
+        <div class="drawer-header-right">
+          <div class="sub-tabs" id="cardInputTabs">
+            <button class="sub-tab active" data-mode="batch">批量录入</button>
+            <button class="sub-tab" data-mode="manual">手动录入</button>
+          </div>
+          <button class="drawer-close" id="btnCloseCardImport">&times;</button>
+        </div>
+      </div>
+      <div class="drawer-body">
+        <div id="cardModeBatch">
+          <textarea class="input-textarea" id="cardBatch" rows="6" placeholder="粘贴卡片数据，每行一张，自动识别多种格式&#10;5357386201276236|07/2026|038|Name|...&#10;4147897002484637|10/30|194|email|Last|First|..."></textarea>
+          <div class="input-row" style="margin-top:6px;align-items:center">
+            <button class="btn-ghost" id="btnParseCards">解析预览</button>
+            <span class="import-result" id="parseStatus" style="display:none"></span>
+          </div>
+          <div id="previewWrap" style="display:none;margin-top:14px">
+            <div class="pv-toolbar">
+              <label class="toggle-label"><input type="checkbox" id="pvCheckAll" checked><span class="toggle-text">全选</span></label>
+              <button class="btn-sm" onclick="pvSelectValid()">仅选有效</button>
+              <button class="btn-sm" onclick="pvRetryFailed()">重解析失败行</button>
+              <span class="pv-toolbar-info" id="pvToolbarInfo"></span>
+            </div>
+            <div class="table-wrap">
+              <table class="preview-table">
+                <thead><tr><th style="width:30px"></th><th style="width:28px">#</th><th>卡号</th><th style="width:100px">过期</th><th style="width:60px">CVV</th><th>持卡人</th><th style="width:60px">状态</th><th style="width:28px"></th></tr></thead>
+                <tbody id="previewBody"></tbody>
+              </table>
+            </div>
+            <div class="preview-actions">
+              <button class="btn-accent-sm" id="btnConfirmImport">确认导入</button>
+              <button class="btn-ghost" id="btnClearPreview">清空</button>
+              <span class="pv-import-progress" id="pvImportProgress" style="display:none"></span>
+            </div>
+          </div>
+        </div>
+        <div id="cardModeManual" style="display:none">
+          <div class="manual-form">
+            <input class="input-text" id="manualNumber" placeholder="卡号">
+            <input class="input-text" id="manualExp" placeholder="MM/YY" style="max-width:90px">
+            <input class="input-text" id="manualCvv" placeholder="CVV" style="max-width:70px">
+            <input class="input-text" id="manualHolder" placeholder="持卡人（可选）">
+            <button class="btn-accent-sm" id="btnManualAdd">添加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer-overlay" id="proxyImportDrawer">
+    <div class="drawer-panel" style="max-width:600px">
+      <div class="drawer-header">
+        <h2>导入代理</h2>
+        <div class="drawer-header-right">
+          <div class="sub-tabs" id="proxyInputTabs">
+            <button class="sub-tab active" data-mode="batch">批量导入</button>
+            <button class="sub-tab" data-mode="manual">手动添加</button>
+          </div>
+          <button class="drawer-close" id="btnCloseProxyImport">&times;</button>
+        </div>
+      </div>
+      <div class="drawer-body">
+        <div id="proxyModeBatch">
+          <div class="input-row" style="margin-bottom:8px;align-items:center">
+            <label class="field-label" style="margin:0;margin-right:8px">默认类型</label>
+            <select class="input-select" id="proxyDefaultType" style="width:130px;margin:0">
+              <option value="socks5">SOCKS5</option>
+              <option value="http">HTTP</option>
+            </select>
+          </div>
+          <textarea class="input-textarea" id="proxyBatchInput" rows="6" placeholder="每行一个代理，支持多种格式:&#10;socks5://user:pass@host:port&#10;http://user:pass@host:port&#10;host:port:user:pass&#10;host:port"></textarea>
+          <div class="input-row" style="margin-top:8px">
+            <button class="btn-accent-sm" id="btnImportProxies">批量导入</button>
+          </div>
+        </div>
+        <div id="proxyModeManual" style="display:none">
+          <div class="manual-form" style="flex-wrap:wrap">
+            <select class="input-select" id="newProxyType" style="max-width:110px;margin:0">
+              <option value="socks5">SOCKS5</option>
+              <option value="http">HTTP</option>
+            </select>
+            <input class="input-text" id="newProxyHost" placeholder="主机" style="margin:0">
+            <input class="input-text" id="newProxyPort" placeholder="端口" style="max-width:80px;margin:0">
+            <input class="input-text" id="newProxyUser" placeholder="用户名（可选）" style="margin:0">
+            <input class="input-text" id="newProxyPass" placeholder="密码（可选）" style="margin:0">
+            <button class="btn-accent-sm" id="btnAddProxy">添加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer-overlay" id="cardSelectDrawer">
+    <div class="drawer-panel" style="max-width:720px">
+      <div class="drawer-header">
+        <h2>选择卡片</h2>
+        <div class="drawer-header-right">
+          <button class="btn-sm" id="csSelectAll">全选可用</button>
+          <button class="btn-sm" id="csInvert">反选</button>
+          <button class="btn-sm" id="csClear">清除</button>
+          <input class="cs-search-input" id="csSearch" type="text" placeholder="搜索卡号/持卡人...">
+          <button class="drawer-close" id="btnCloseCardSelect">×</button>
+        </div>
+      </div>
+      <div class="drawer-body">
+        <div class="table-wrap">
+          <table class="data-table cs-table">
+            <thead>
+              <tr>
+                <th style="width:32px"><input type="checkbox" id="csCheckAll"></th>
+                <th>ID</th>
+                <th>卡号</th>
+                <th>有效期</th>
+                <th>持卡人</th>
+                <th>地址</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="csCardBody"></tbody>
+          </table>
+          <div class="card-select-empty" id="csEmpty" style="display:none">无可用卡片</div>
+        </div>
+      </div>
+      <div class="drawer-footer">
+        <span class="cs-footer-count" id="csFooterCount">已选 0 张</span>
+        <button class="btn-primary" id="csConfirm">确认选择</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

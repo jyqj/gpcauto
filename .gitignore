@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# Python cache / test cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Local env
+.venv/
+venv/
+env/
+
+# Runtime database sidecars / logs
+/data/*.db-shm
+/data/*.db-wal
+/data/logs/
+
+# Keep initialized SQLite DB
+!/data/data.db
+
+# Do not publish local docs / launcher
+/README.md
+/FLOW.md
+/启动服务.command
