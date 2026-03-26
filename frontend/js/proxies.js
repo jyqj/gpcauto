@@ -7,6 +7,7 @@ import { PROXY_STATUS } from './constants.js';
 let allProxies = [];
 let proxySelected = new Set();
 let proxyHealth = {};
+let proxyChecking = new Set();
 let proxyPage = 1;
 let proxyPageSize = 50;
 let proxyTotal = 0;
@@ -69,6 +70,7 @@ export function initProxies() {
   window.proxyBatchDisable = () => batchSetStatus(PROXY_STATUS.DISABLED);
   window.deleteProxy = deleteProxy;
   window.enableProxy = enableProxy;
+  window.checkProxy = checkProxy;
 }
 
 async function resetAllProxies() {
@@ -110,6 +112,7 @@ function renderTable(proxies) {
     const sel = proxySelected.has(p.id) ? 'checked' : '';
     const time = (p.created_at || '').replace('T', ' ').replace('Z', '').substring(0, 16);
     const isDisabled = (p.status || PROXY_STATUS.AVAILABLE) === PROXY_STATUS.DISABLED;
+    const isChecking = proxyChecking.has(p.id);
     const dimRow = isDisabled ? ' row-dim' : '';
 
     const h = proxyHealth[p.id];
@@ -124,9 +127,10 @@ function renderTable(proxies) {
         : '<span class="badge active">可用</span>';
     }
 
+    const checkBtn = `<button class="btn-sm" onclick="checkProxy(${p.id})" ${isChecking ? 'disabled' : ''}>${isChecking ? '检测中...' : '测活'}</button>`;
     const actions = isDisabled
-      ? `<button class="btn-sm accent" onclick="enableProxy(${p.id})">启用</button> <button class="btn-sm danger" onclick="deleteProxy(${p.id})">删</button>`
-      : `<button class="btn-sm danger" onclick="deleteProxy(${p.id})">删</button>`;
+      ? `${checkBtn} <button class="btn-sm accent" onclick="enableProxy(${p.id})">启用</button> <button class="btn-sm danger" onclick="deleteProxy(${p.id})">删</button>`
+      : `${checkBtn} <button class="btn-sm danger" onclick="deleteProxy(${p.id})">删</button>`;
 
     return `<tr class="${sel ? 'row-selected' : ''}${dimRow}" data-id="${p.id}">
       <td><input type="checkbox" class="row-check proxy-check" data-id="${p.id}" ${sel}></td>
@@ -188,6 +192,44 @@ function updateBatchBar() {
   $('#proxyCheckAll').checked = n > 0 && allProxies.every(p => proxySelected.has(p.id));
 }
 
+function getProxyById(id) {
+  return allProxies.find(p => p.id === id);
+}
+
+function flashProxyRow(id) {
+  const row = document.querySelector(`#proxiesBody tr[data-id="${id}"]`);
+  if (!row) return;
+  row.classList.remove('row-flash');
+  void row.offsetWidth;
+  row.classList.add('row-flash');
+  setTimeout(() => row.classList.remove('row-flash'), 1200);
+}
+
+function refreshProxyTableLocal() {
+  renderTable(allProxies);
+  renderProxyPagination();
+  updateBatchBar();
+}
+
+function applyProxyCheckResultLocal(d) {
+  const proxy = getProxyById(d.proxy_id);
+  proxyHealth[d.proxy_id] = { alive: d.alive, latency_ms: d.latency_ms, error: d.error };
+  if (!proxy) return;
+
+  proxy.status = d.alive ? PROXY_STATUS.AVAILABLE : PROXY_STATUS.DISABLED;
+
+  if (proxyFilter !== 'all' && proxy.status !== proxyFilter) {
+    allProxies = allProxies.filter(p => p.id !== d.proxy_id);
+    proxySelected.delete(d.proxy_id);
+    proxyTotal = Math.max(0, proxyTotal - 1);
+    refreshProxyTableLocal();
+    return;
+  }
+
+  refreshProxyTableLocal();
+  flashProxyRow(d.proxy_id);
+}
+
 function selectAll() { allProxies.forEach(p => proxySelected.add(p.id)); renderTable(allProxies); updateBatchBar(); }
 function selectNone() { proxySelected.clear(); renderTable(allProxies); updateBatchBar(); }
 
@@ -206,6 +248,11 @@ async function enableProxy(id) {
   showToast(`代理 #${id} 已启用`, 'success');
   proxyHealth[id] = undefined;
   loadProxies();
+}
+
+async function checkProxy(id) {
+  if (proxyChecking.has(id)) return;
+  return checkProxies([id]);
 }
 
 async function batchDelete() {
@@ -227,42 +274,80 @@ async function deleteProxy(id) {
 
 async function checkProxies(ids) {
   const btn = $('#btnCheckProxies');
-  btn.disabled = true;
-  btn.textContent = '检测中...';
+  const singleId = Array.isArray(ids) && ids.length === 1 ? ids[0] : null;
+  const isSingle = !!singleId;
+  const pw = $('#proxyCheckWrap');
+  const pb = $('#proxyCheckBar');
+  const pt = $('#proxyCheckText');
+
+  if (isSingle) {
+    proxyChecking.add(singleId);
+    refreshProxyTableLocal();
+  } else {
+    btn.disabled = true;
+    btn.textContent = '检测中...';
+    pw.style.display = 'block';
+    pb.style.width = '0%';
+    pt.textContent = '0/0';
+  }
   try {
     const body = ids ? { ids } : {};
     const { task_id } = await api.proxies.check(body);
-    const pw = $('#proxyCheckWrap');
-    const pb = $('#proxyCheckBar');
-    const pt = $('#proxyCheckText');
-    pw.style.display = 'block';
 
     listenSSE(`/api/proxies/check/${task_id}/stream`, {
       onProxyChecked(d) {
-        pb.style.width = Math.round((d.current / d.total) * 100) + '%';
-        pt.textContent = `${d.current}/${d.total}`;
-        proxyHealth[d.proxy_id] = { alive: d.alive, latency_ms: d.latency_ms, error: d.error };
-        renderTable(allProxies);
+        if (!isSingle) {
+          pb.style.width = Math.round((d.current / d.total) * 100) + '%';
+          pt.textContent = `${d.current}/${d.total}`;
+        }
+        applyProxyCheckResultLocal(d);
       },
       onDone(d) {
-        pw.style.display = 'none';
-        btn.disabled = false;
-        btn.textContent = '测活';
+        if (isSingle) {
+          proxyChecking.delete(singleId);
+          refreshProxyTableLocal();
+        } else {
+          pw.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = '测活';
+        }
         const r = d.result || {};
-        showToast(`检测完成: ${r.alive || 0} 存活, ${r.dead || 0} 已封禁`, r.dead ? 'warning' : 'success');
-        loadProxies();
+        const recoveredText = (r.recovered || 0) ? `, ${r.recovered} 已恢复` : '';
+        showToast(`检测完成: ${r.alive || 0} 存活, ${r.dead || 0} 已封禁${recoveredText}`, r.dead ? 'warning' : 'success');
+        if (!isSingle) loadProxies();
         loadDashboard();
       },
+      onCancelled(d) {
+        if (isSingle) {
+          proxyChecking.delete(singleId);
+          refreshProxyTableLocal();
+        } else {
+          pw.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = '测活';
+        }
+        showToast(`检测已取消`, 'warning');
+      },
       onError(d) {
-        pw.style.display = 'none';
-        btn.disabled = false;
-        btn.textContent = '测活';
+        if (isSingle) {
+          proxyChecking.delete(singleId);
+          refreshProxyTableLocal();
+        } else {
+          pw.style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = '测活';
+        }
         showToast(`检测失败: ${d.message}`, 'error');
       },
     });
   } catch (e) {
-    btn.disabled = false;
-    btn.textContent = '测活';
+    if (isSingle) {
+      proxyChecking.delete(singleId);
+      refreshProxyTableLocal();
+    } else {
+      btn.disabled = false;
+      btn.textContent = '测活';
+    }
     showToast(`启动检测失败: ${e.message}`, 'error');
   }
 }

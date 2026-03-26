@@ -75,6 +75,34 @@ def test_list_proxies_paginated(client):
     assert "total" in data
 
 
+def test_proxy_check_revives_disabled_proxy(client, monkeypatch):
+    from backend import db
+    from backend.services import task_manager
+
+    proxy_id = db.insert_proxy({
+        "type": "socks5",
+        "host": "127.0.0.1",
+        "port": "1080",
+        "username": "",
+        "password": "",
+        "label": "",
+    })
+    db.batch_update_proxy_status([proxy_id], "disabled")
+
+    monkeypatch.setattr("backend.routes.proxies._test_proxy", lambda _proxy_url: (True, 123, None))
+    monkeypatch.setattr(
+        "backend.routes.proxies.start_managed_thread",
+        lambda target, *args, **kwargs: target(*args),
+    )
+
+    r = client.post("/api/proxies/check", json={"ids": [proxy_id], "concurrency": 1})
+    assert r.status_code == 200
+
+    state = task_manager._get_task(r.json()["task_id"])
+    assert state.result == {"alive": 1, "dead": 0, "recovered": 1, "total": 1}
+    assert db.get_proxy(proxy_id)["status"] == "available"
+
+
 def test_pagination_negative_values_rejected(client):
     """负数分页参数应返回 422。"""
     assert client.get("/api/accounts?page=-1&page_size=10").status_code == 422

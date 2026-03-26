@@ -544,6 +544,7 @@ tbody tr:hover td { color: var(--text); }
 .row-selected td { color: var(--text) !important; }
 .row-dim td { opacity: 0.4; }
 .row-dim:hover td { opacity: 0.7; }
+.row-flash td { animation: rowFlash 1.2s ease; }
 
 th.sortable { cursor: pointer; user-select: none; transition: color 0.15s; }
 th.sortable:hover { color: var(--text); }
@@ -1217,6 +1218,11 @@ th.sortable.sort-desc::after { content: '↓'; opacity: 0.85; color: var(--accen
 @keyframes fieldFlash {
   0% { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
   100% { border-color: var(--border); box-shadow: none; }
+}
+
+@keyframes rowFlash {
+  0% { background: rgba(113, 210, 255, 0.24); }
+  100% { background: transparent; }
 }
 
 @keyframes shimmer {

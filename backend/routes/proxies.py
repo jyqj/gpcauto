@@ -189,12 +189,12 @@ def start_proxy_check(req: ProxyCheckRequest) -> JSONDict:
 
         total = len(proxies_list)
         if total == 0:
-            state.result = {"alive": 0, "dead": 0, "total": 0}
+            state.result = {"alive": 0, "dead": 0, "recovered": 0, "total": 0}
             state.status = "success"
             state.push({"type": "done", "result": state.result})
             return
 
-        result = {"alive": 0, "dead": 0, "total": total}
+        result = {"alive": 0, "dead": 0, "recovered": 0, "total": total}
         completed = [0]
         lock = threading.Lock()
 
@@ -203,6 +203,12 @@ def start_proxy_check(req: ProxyCheckRequest) -> JSONDict:
                 return
             proxy_url = _build_proxy_url(p)
             alive, latency, error = _test_proxy(proxy_url)
+            recovered = False
+            if alive:
+                if p.get("status") == PROXY_STATUS_DISABLED:
+                    db.batch_update_proxy_status([p["id"]], PROXY_STATUS_AVAILABLE)
+                    _invalidate_proxy_cache(p["id"])
+                    recovered = True
             if not alive:
                 _temp_ban_proxy(p["id"])
                 _invalidate_proxy_cache(p["id"])
@@ -210,6 +216,8 @@ def start_proxy_check(req: ProxyCheckRequest) -> JSONDict:
             with lock:
                 if alive:
                     result["alive"] += 1
+                    if recovered:
+                        result["recovered"] += 1
                 else:
                     result["dead"] += 1
                 completed[0] += 1
@@ -217,6 +225,7 @@ def start_proxy_check(req: ProxyCheckRequest) -> JSONDict:
             state.push({
                 "type": "proxy_checked", "current": idx, "total": total,
                 "proxy_id": p["id"], "alive": alive,
+                "recovered": recovered,
                 "latency_ms": latency, "error": error or "",
             })
 
