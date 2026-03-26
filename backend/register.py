@@ -6,7 +6,7 @@ import string
 import time
 from typing import Any, Callable, Optional
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
 from . import adspower, email_service, browser_utils, card_service, db, address_data
 from .constants import CARD_FAIL_3DS, CARD_FAIL_DECLINE, CARD_FAIL_INSUFFICIENT, CARD_STATUS_DISABLED
@@ -245,11 +245,22 @@ def run(
             )
             step(9, f"生日: {birthday_val}")
             browser_utils.click_submit(page)
+            _sleep(1)
 
             # 10 — 组织
-            browser_utils.wait_for_url_interruptible(
-                page, "**/welcome?step=create", timeout=30000, check_abort=check_abort
-            )
+            try:
+                browser_utils.wait_for_onboarding_create_interruptible(
+                    page, timeout=12000, check_abort=check_abort
+                )
+            except PlaywrightTimeoutError:
+                if "about-you" not in page.url:
+                    raise
+                step(9, "about-you 未跳转，重试提交...")
+                browser_utils.click_submit(page)
+                _sleep(1)
+                browser_utils.wait_for_onboarding_create_interruptible(
+                    page, timeout=30000, check_abort=check_abort
+                )
             _check()
             _sleep(2)
             step(10, f"创建组织({org_name} / {role})...")

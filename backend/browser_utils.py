@@ -88,6 +88,45 @@ def wait_for_url_interruptible(
         raise PlaywrightTimeoutError(f"Timeout waiting for URL: {pattern} (current: {page.url})")
 
 
+def _has_onboarding_create_page(page: Page) -> bool:
+    if fnmatch.fnmatch(page.url, "**/welcome?step=create"):
+        return True
+    try:
+        return bool(page.evaluate("""() => {
+            const orgInput = document.querySelector('#organization-name');
+            if (orgInput && orgInput.offsetParent) return true;
+            for (const el of document.querySelectorAll('button, h1, h2, h3, label, span, div')) {
+                if (!el.offsetParent) continue;
+                const t = (el.textContent || '').trim().toLowerCase();
+                if (!t) continue;
+                if (t.includes('create organization') || t.includes('organization name')) return true;
+            }
+            return false;
+        }"""))
+    except Exception:
+        return False
+
+
+def wait_for_onboarding_create_interruptible(
+    page: Page,
+    timeout: int = 30000,
+    check_abort: Optional[Callable[[], bool]] = None,
+) -> None:
+    if _interruptible_wait_loop(timeout, check_abort, lambda: _has_onboarding_create_page(page)):
+        return
+    err = _page_error_text(page)
+    submit = _submit_button_state(page)
+    extra = []
+    if submit:
+        extra.append(f"submit={submit}")
+    if err:
+        extra.append(f"page_error={err}")
+    suffix = f" ({', '.join(extra)})" if extra else ""
+    raise PlaywrightTimeoutError(
+        f"Timeout waiting for onboarding create page (current: {page.url}){suffix}"
+    )
+
+
 _PAGE_ERROR_JS = """() => {
     for (const sel of ['[role="alert"]', '[role="status"]',
                         '.error-message', '.text-danger', '.err-message']) {
@@ -241,18 +280,67 @@ def click_button_containing(page: Page, text: str) -> bool:
     return _click_buttons(page, contains_texts=[text])
 
 
-def click_submit(page: Page) -> None:
-    """用完整鼠标事件序列点击 submit 按钮。"""
-    page.evaluate(
+def _submit_button_state(page: Page) -> dict[str, Any]:
+    return page.evaluate(
         """() => {
-            const btn = document.querySelector('button[type="submit"]');
-            if (!btn) return false;
-            btn.focus();
-            ['pointerdown','mousedown','pointerup','mouseup','click'].forEach(t =>
-                btn.dispatchEvent(new MouseEvent(t, {bubbles:true, cancelable:true, view:window}))
-            );
-            return true;
+            const btn = document.querySelector('button[type="submit"], button[data-testid="submit-button"]');
+            if (!btn || !btn.offsetParent) {
+                return { found: false, disabled: null, text: '' };
+            }
+            return {
+                found: true,
+                disabled: !!btn.disabled || btn.getAttribute('aria-disabled') === 'true',
+                text: (btn.innerText || btn.textContent || '').trim(),
+            };
         }"""
+    )
+
+
+def click_submit(page: Page, retries: int = 3, delay: float = 0.5) -> dict[str, Any]:
+    """更稳地点击 submit 按钮；若按钮不可用会带状态信息抛错。"""
+    last_state: dict[str, Any] = {"found": False, "disabled": None, "text": ""}
+    for _ in range(max(1, retries)):
+        last_state = _submit_button_state(page)
+        if not last_state.get("found"):
+            time.sleep(delay)
+            continue
+        if last_state.get("disabled"):
+            time.sleep(delay)
+            continue
+
+        clicked = False
+        try:
+            btn = page.locator("button[type='submit']").first
+            if btn.count() > 0:
+                btn.click(timeout=3000)
+                clicked = True
+        except Exception:
+            pass
+
+        if not clicked:
+            clicked = bool(page.evaluate(
+                """() => {
+                    const btn = document.querySelector('button[type="submit"], button[data-testid="submit-button"]');
+                    if (!btn || !btn.offsetParent) return false;
+                    btn.focus();
+                    try { btn.click(); } catch (_) {}
+                    const form = btn.form || btn.closest('form');
+                    if (form && typeof form.requestSubmit === 'function') {
+                        try { form.requestSubmit(btn); } catch (_) {}
+                    }
+                    ['pointerdown','mousedown','pointerup','mouseup','click'].forEach(t =>
+                        btn.dispatchEvent(new MouseEvent(t, { bubbles: true, cancelable: true, view: window }))
+                    );
+                    return true;
+                }"""
+            ))
+        if clicked:
+            return last_state
+        time.sleep(delay)
+
+    raise RuntimeError(
+        f"submit 按钮未就绪或点击失败: found={last_state.get('found')} "
+        f"disabled={last_state.get('disabled')} text={last_state.get('text', '')!r}"
     )
 
 
