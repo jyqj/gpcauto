@@ -89,7 +89,7 @@ def wait_for_url_interruptible(
 
 
 def _has_onboarding_create_page(page: Page) -> bool:
-    if fnmatch.fnmatch(page.url, "**/welcome?step=create"):
+    if fnmatch.fnmatch(page.url, "**/welcome?step=create*"):
         return True
     try:
         return bool(page.evaluate("""() => {
@@ -124,6 +124,80 @@ def wait_for_onboarding_create_interruptible(
     suffix = f" ({', '.join(extra)})" if extra else ""
     raise PlaywrightTimeoutError(
         f"Timeout waiting for onboarding create page (current: {page.url}){suffix}"
+    )
+
+
+def _has_onboarding_invite_page(page: Page) -> bool:
+    if fnmatch.fnmatch(page.url, "**/welcome?step=invite*"):
+        return True
+    try:
+        return bool(page.evaluate("""() => {
+            const texts = [
+                'invite my team later',
+                'invite your team',
+                'invite teammates',
+                'invite team',
+            ];
+            for (const el of document.querySelectorAll('button, h1, h2, h3, p, span, div')) {
+                if (!el.offsetParent) continue;
+                const t = (el.textContent || '').trim().toLowerCase();
+                if (!t) continue;
+                if (texts.some(part => t.includes(part))) return true;
+            }
+            return false;
+        }"""))
+    except Exception:
+        return False
+
+
+def _has_onboarding_try_page(page: Page) -> bool:
+    if fnmatch.fnmatch(page.url, "**/welcome?step=try*"):
+        return True
+    try:
+        return bool(page.evaluate("""() => {
+            for (const el of document.querySelectorAll('button, a, [role="button"]')) {
+                if (!el.offsetParent) continue;
+                const t = (el.textContent || '').trim().toLowerCase();
+                if (!t) continue;
+                if (t.includes('generate api key') || t.includes('create api key') || t.includes('api keys')) {
+                    return true;
+                }
+            }
+            return false;
+        }"""))
+    except Exception:
+        return False
+
+
+def wait_for_onboarding_invite_or_try_interruptible(
+    page: Page,
+    timeout: int = 15000,
+    check_abort: Optional[Callable[[], bool]] = None,
+) -> str:
+    state = {"step": ""}
+
+    def _predicate() -> bool:
+        if _has_onboarding_try_page(page):
+            state["step"] = "try"
+            return True
+        if _has_onboarding_invite_page(page):
+            state["step"] = "invite"
+            return True
+        return False
+
+    if _interruptible_wait_loop(timeout, check_abort, _predicate):
+        return state["step"]
+
+    err = _page_error_text(page)
+    submit = _submit_button_state(page)
+    extra = []
+    if submit:
+        extra.append(f"submit={submit}")
+    if err:
+        extra.append(f"page_error={err}")
+    suffix = f" ({', '.join(extra)})" if extra else ""
+    raise PlaywrightTimeoutError(
+        f"Timeout waiting for onboarding invite/try page (current: {page.url}){suffix}"
     )
 
 
@@ -278,6 +352,118 @@ def click_button_by_text(page: Page, text: str) -> bool:
 
 def click_button_containing(page: Page, text: str) -> bool:
     return _click_buttons(page, contains_texts=[text])
+
+
+def click_invite_later(page: Page) -> bool:
+    clicked = _click_buttons(
+        page,
+        exact_texts=[
+            "Invite my team later",
+            "invite my team later",
+            "Later",
+            "later",
+            "Skip",
+            "Skip for now",
+        ],
+        contains_texts=[
+            "invite my team later",
+            "later",
+            "skip",
+        ],
+        selectors='button, [role="button"]',
+    )
+    if clicked:
+        return True
+
+    try:
+        page.locator("button:has-text('invite my team later')").first.click(timeout=3000)
+        return True
+    except Exception:
+        pass
+    try:
+        page.locator("button:has-text('later')").first.click(timeout=3000)
+        return True
+    except Exception:
+        pass
+
+    raise RuntimeError("未找到 invite later / skip 按钮")
+
+
+def _has_api_key_cta(page: Page) -> bool:
+    try:
+        return bool(page.evaluate("""() => {
+            for (const el of document.querySelectorAll('button, a, [role="button"]')) {
+                if (!el.offsetParent) continue;
+                const t = (el.textContent || '').trim().toLowerCase();
+                if (!t) continue;
+                if (
+                    t.includes('generate api key')
+                    || t.includes('create api key')
+                    || t.includes('api key')
+                    || t.includes('api keys')
+                ) {
+                    return true;
+                }
+            }
+            return false;
+        }"""))
+    except Exception:
+        return False
+
+
+def wait_for_api_key_cta_interruptible(
+    page: Page,
+    timeout: int = 15000,
+    check_abort: Optional[Callable[[], bool]] = None,
+) -> None:
+    if _interruptible_wait_loop(timeout, check_abort, lambda: _has_api_key_cta(page)):
+        return
+    raise PlaywrightTimeoutError(f"Timeout waiting for API key CTA (current: {page.url})")
+
+
+def click_api_key_cta(page: Page) -> bool:
+    clicked = _click_buttons(
+        page,
+        exact_texts=[
+            "Generate API Key",
+            "Generate API key",
+            "Create API Key",
+            "Create API key",
+            "API Keys",
+            "API keys",
+        ],
+        contains_texts=[
+            "Generate API Key",
+            "Generate API key",
+            "Create API Key",
+            "Create API key",
+            "API Key",
+            "API key",
+            "API Keys",
+            "API keys",
+        ],
+        selectors='button, a, [role="button"]',
+    )
+    if clicked:
+        return True
+
+    for sel in [
+        "button:has-text('Generate API Key')",
+        "button:has-text('Generate API key')",
+        "button:has-text('Create API Key')",
+        "button:has-text('Create API key')",
+        "a:has-text('API Keys')",
+        "a:has-text('API keys')",
+        "[role='button']:has-text('API Key')",
+        "[role='button']:has-text('API key')",
+    ]:
+        try:
+            page.locator(sel).first.click(timeout=3000)
+            return True
+        except Exception:
+            pass
+
+    raise RuntimeError(f"未找到 API Key 入口，当前 URL: {page.url}")
 
 
 def _submit_button_state(page: Page) -> dict[str, Any]:

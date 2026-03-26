@@ -250,11 +250,16 @@ def run(
             # 10 — 组织
             try:
                 browser_utils.wait_for_onboarding_create_interruptible(
-                    page, timeout=12000, check_abort=check_abort
+                    page, timeout=30000, check_abort=check_abort
                 )
             except PlaywrightTimeoutError:
-                if "about-you" not in page.url:
+                if "about-you" not in page.url and "callback" not in page.url:
                     raise
+                if "callback" in page.url:
+                    step(9, "OAuth callback 仍在跳转，继续等待...")
+                    browser_utils.wait_for_onboarding_create_interruptible(
+                        page, timeout=30000, check_abort=check_abort
+                    )
                 step(9, "about-you 未跳转，重试提交...")
                 browser_utils.click_submit(page)
                 _sleep(1)
@@ -267,23 +272,39 @@ def run(
             browser_utils.react_set_value(page, "#organization-name", org_name)
             _sleep(0.5)
             browser_utils.click_radix_select(page, role)
-            _sleep(1)
-            browser_utils.click_button_by_text(page, "Create organization")
-            browser_utils.wait_for_url_interruptible(
-                page, "**/welcome?step=invite", timeout=15000, check_abort=check_abort
+            _sleep(0.8)
+
+            # 这里不能只依赖 locator.click()：
+            # 当前 welcome/create 页面偶发“按钮点了但表单没真正提交”，
+            # 表现为看起来像是在 invite 步骤闪退，实际上 URL 仍停在 step=create。
+            try:
+                browser_utils.click_submit(page, retries=5, delay=0.8)
+            except Exception:
+                page.locator("button:has-text('Create organization')").first.click(timeout=5000)
+            _sleep(1.5)
+
+            next_step = browser_utils.wait_for_onboarding_invite_or_try_interruptible(
+                page, timeout=20000, check_abort=check_abort
             )
             _check()
             _sleep(1)
-            browser_utils.click_button_containing(page, "invite my team later")
-            browser_utils.wait_for_url_interruptible(
-                page, "**/welcome?step=try", timeout=15000, check_abort=check_abort
-            )
+            if next_step == "invite":
+                step(10, "跳过邀请...")
+                browser_utils.click_invite_later(page)
+                browser_utils.wait_for_api_key_cta_interruptible(
+                    page, timeout=20000, check_abort=check_abort
+                )
+            else:
+                step(10, "已直接进入 API Key 引导，跳过邀请页")
+                browser_utils.wait_for_api_key_cta_interruptible(
+                    page, timeout=20000, check_abort=check_abort
+                )
             _check()
             _sleep(2)
 
             # 11 — API Key
             step(11, "生成 API Key...")
-            browser_utils.click_button_by_text(page, "Generate API Key")
+            browser_utils.click_api_key_cta(page)
             _sleep(5)
             api_key = None
             for _attempt in range(10):
